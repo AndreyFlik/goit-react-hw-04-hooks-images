@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
 import Searchbar from "../Searchbar/Searchbar";
 import ImageGallery from "../ImageGallery/ImageGallery";
 import Button from "../Button/Button";
@@ -10,48 +10,46 @@ import "react-toastify/dist/ReactToastify.css";
 const URL = "https://pixabay.com/api/";
 const API_KEY = "24465879-ee592e630361e28095acfb740";
 
-export class App extends Component {
-  state = {
-    arrayList: [],
-    queryName: "",
-    page: 1,
-    loading: false,
-    showModal: false,
-    largeImg: "",
+const App = () => {
+  const [arrayList, setArrayList] = useState([]);
+  const [queryName, setQueryName] = useState("");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImg, setLargeImg] = useState("");
+
+  useEffect(() => {
+    if (queryName === "") {
+      return;
+    }
+    setLoading(true);
+    fetchPick()
+      .then((newArray) => {
+        if (newArray.total === 0) {
+          toast.warn(`Ничего не найдено`);
+        } else {
+          setArrayList([...arrayList, ...newArray.hits]);
+        }
+      })
+      .catch((error) => toast.error("Oops, something went wrong"))
+      .finally(() => {
+        setLoading(false);
+        if (page !== 1) {
+          window.scrollTo({
+            top: document.body.clientHeight,
+            behavior: "smooth",
+          });
+        }
+      });
+  }, [queryName, page]);
+  const getLargeImageForModal = (data) => {
+    toggleModal();
+    setLargeImg(data);
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.queryName !== this.state.queryName ||
-      prevState.page !== this.state.page
-    ) {
-      this.setState({ loading: true });
-      this.fetchPick()
-        .then((newArray) => {
-          if (newArray.total === 0) {
-            toast.warn(`Ничего не найдено`);
-          } else {
-            this.setState((prevState) => ({
-              arrayList: [...prevState.arrayList, ...newArray.hits],
-            }));
-          }
-        })
-        .catch((error) => toast.error("Oops, something went wrong"))
-        .finally(() => this.setState({ loading: false }));
-    }
-    if (prevState.arrayList !== this.state.arrayList && this.state.page !== 1) {
-      window.scrollTo({ top: document.body.clientHeight, behavior: "smooth" });
-    }
-  }
-
-  getLargeImageForModal = (data) => {
-    this.toggleModal();
-    this.setState({ largeImg: data });
-  };
-
-  fetchPick = () => {
+  const fetchPick = () => {
     return fetch(
-      `${URL}?q=${this.state.queryName}&key=${API_KEY}&image_type=photo&orientation=horizontal&page=${this.state.page}&per_page=12`
+      `${URL}?q=${queryName}&key=${API_KEY}&image_type=photo&orientation=horizontal&page=${page}&per_page=12`
     ).then((res) => {
       if (res.status === 404) {
         return Promise.reject("Oops, something went wrong");
@@ -60,48 +58,39 @@ export class App extends Component {
     });
   };
 
-  toggleModal = () => {
-    this.setState((state) => ({
-      showModal: !state.showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  handleFormSubmit = (data) => {
-    this.setState({ queryName: data, arrayList: [], page: 1 });
+  const handleFormSubmit = (data) => {
+    setQueryName(data);
+    setArrayList([]);
+    setPage(1);
   };
 
-  handleClikLoadMore = () => {
-    this.setState((prevState) => ({ page: prevState.page + 1 }));
+  const handleClikLoadMore = () => {
+    setPage(page + 1);
   };
 
-  render() {
-    return (
-      <div>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        {this.state.loading && (
-          <Loader type="ThreeDots" color="#00BFFF" height={100} width={100} />
-        )}
-        {this.state.arrayList.length !== 0 && (
-          <ImageGallery
-            modalImageLoad={this.getLargeImageForModal}
-            arrayQueryList={this.state.arrayList}
-            onToggleMenu={this.toggleModal}
-          />
-        )}
+  return (
+    <div>
+      <Searchbar onSubmit={handleFormSubmit} />
+      {loading && (
+        <Loader type="ThreeDots" color="#00BFFF" height={100} width={100} />
+      )}
+      {arrayList.length !== 0 && (
+        <ImageGallery
+          modalImageLoad={getLargeImageForModal}
+          arrayQueryList={arrayList}
+          onToggleMenu={toggleModal}
+        />
+      )}
 
-        {this.state.arrayList.length !== 0 && (
-          <Button onClick={this.handleClikLoadMore} />
-        )}
-        {this.state.showModal && (
-          <Modal
-            onToggleMenu={this.toggleModal}
-            modalImage={this.state.largeImg}
-          />
-        )}
-        <ToastContainer />
-      </div>
-    );
-  }
-}
+      {arrayList.length !== 0 && <Button onClick={handleClikLoadMore} />}
+      {showModal && <Modal onToggleMenu={toggleModal} modalImage={largeImg} />}
+      <ToastContainer />
+    </div>
+  );
+};
 
 export default App;

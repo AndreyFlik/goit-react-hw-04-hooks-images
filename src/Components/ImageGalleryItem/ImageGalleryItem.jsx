@@ -1,7 +1,7 @@
 import s from "./ImageGalleryItem.module.css";
 import React from "react";
 
-const ImageGalleryItem = ({ nameList, onToggleMenu, modalImageLoad }) => {
+const ImageGalleryItem = ({ nameList, modalImageLoad }) => {
   return (
     <li className={s.ImageGalleryItem}>
       <img
